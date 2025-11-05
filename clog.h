@@ -553,6 +553,7 @@ static bool clog_use_ansi_colors(void) {
   switch (clog_color_mode) {
   case CLOG_COLOR_ANSI:
     return true;
+  case CLOG_COLOR_NEVER:    
   case CLOG_COLOR_WIN32:
     return false;
   case CLOG_COLOR_AUTO:
