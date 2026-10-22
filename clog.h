@@ -112,14 +112,29 @@ typedef int clog_mutex_t;
 #define CLOG_WIN_DEFAULT (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 #endif
 
+/* Log level numbers, usable in preprocessor conditionals */
+#define CLOG_LEVEL_TRACE 0
+#define CLOG_LEVEL_DEBUG 1
+#define CLOG_LEVEL_INFO 2
+#define CLOG_LEVEL_WARN 3
+#define CLOG_LEVEL_ERROR 4
+#define CLOG_LEVEL_FATAL 5
+
+/* Compile-time level filter. Log calls below CLOG_MIN_LEVEL are removed by the
+ * preprocessor, format strings included. Override before including this header,
+ * e.g. -DCLOG_MIN_LEVEL=CLOG_LEVEL_INFO */
+#ifndef CLOG_MIN_LEVEL
+#define CLOG_MIN_LEVEL CLOG_LEVEL_TRACE
+#endif
+
 /* Log Levels */
 typedef enum {
-  CLOG_TRACE = 0,
-  CLOG_DEBUG = 1,
-  CLOG_INFO = 2,
-  CLOG_WARN = 3,
-  CLOG_ERROR = 4,
-  CLOG_FATAL = 5
+  CLOG_TRACE = CLOG_LEVEL_TRACE,
+  CLOG_DEBUG = CLOG_LEVEL_DEBUG,
+  CLOG_INFO = CLOG_LEVEL_INFO,
+  CLOG_WARN = CLOG_LEVEL_WARN,
+  CLOG_ERROR = CLOG_LEVEL_ERROR,
+  CLOG_FATAL = CLOG_LEVEL_FATAL
 } clog_level_t;
 
 /* Color mode enumeration */
@@ -209,17 +224,47 @@ static inline void clog_log(clog_level_t level, const char *file, int line,
   va_end(args);
 }
 
-/* Convenience macros */
+/* Convenience macros. Levels below CLOG_MIN_LEVEL expand to nothing, so neither
+ * the call nor its format string reaches the compiler. */
+#if CLOG_MIN_LEVEL <= CLOG_LEVEL_TRACE
 #define TRACE(...)                                                             \
   clog_log(CLOG_TRACE, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#else
+#define TRACE(...) ((void)0)
+#endif
+
+#if CLOG_MIN_LEVEL <= CLOG_LEVEL_DEBUG
 #define DEBUG(...)                                                             \
   clog_log(CLOG_DEBUG, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#else
+#define DEBUG(...) ((void)0)
+#endif
+
+#if CLOG_MIN_LEVEL <= CLOG_LEVEL_INFO
 #define INFO(...) clog_log(CLOG_INFO, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#else
+#define INFO(...) ((void)0)
+#endif
+
+#if CLOG_MIN_LEVEL <= CLOG_LEVEL_WARN
 #define WARN(...) clog_log(CLOG_WARN, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#else
+#define WARN(...) ((void)0)
+#endif
+
+#if CLOG_MIN_LEVEL <= CLOG_LEVEL_ERROR
 #define ERROR(...)                                                             \
   clog_log(CLOG_ERROR, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#else
+#define ERROR(...) ((void)0)
+#endif
+
+#if CLOG_MIN_LEVEL <= CLOG_LEVEL_FATAL
 #define FATAL(...)                                                             \
   clog_log(CLOG_FATAL, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#else
+#define FATAL(...) ((void)0)
+#endif
 
 /* Backward compatibility */
 #define LOG(level, custom_error, format, ...)                                  \
