@@ -37,7 +37,7 @@
 ```sh
 git clone https://github.com/0xA1M/clog.git
 cd clog
-````
+```
 
 Then copy `clog.h` into your project:
 
@@ -92,6 +92,39 @@ Cleanup (optional, automatically called via `atexit`):
 ```c
 clog_cleanup();
 ```
+
+### 编译期等级过滤
+
+在 `#include "clog.h"` 之前定义 `CLOG_LOG_LEVEL`，低于它的日志从编译中移除 —— 调用和格式字符串都不会到达编译器：
+
+```sh
+gcc -DCLOG_LOG_LEVEL=CLOG_LEVEL_INFO app.c
+```
+
+```c
+#define CLOG_LOG_LEVEL CLOG_LEVEL_WARN
+#include "clog.h"
+```
+
+| `CLOG_LOG_LEVEL` | 保留的等级 |
+| --- | --- |
+| `CLOG_LEVEL_TRACE`（默认）、`0` | TRACE, DEBUG, INFO, WARN, ERROR, FATAL |
+| `CLOG_LEVEL_DEBUG`、`1` | DEBUG, INFO, WARN, ERROR, FATAL |
+| `CLOG_LEVEL_INFO`、`2` | INFO, WARN, ERROR, FATAL |
+| `CLOG_LEVEL_WARN`、`3` | WARN, ERROR, FATAL |
+| `CLOG_LEVEL_ERROR`、`4` | ERROR, FATAL |
+| `CLOG_LEVEL_FATAL`、`5` | FATAL |
+| `6`（比 `CLOG_LEVEL_FATAL` 大） | 全部移除 |
+
+一个只调用 `DEBUG` 和 `TRACE` 的文件，把这两级滤掉后，`-Os` 下 `.text` 从 1685 字节降到 85 字节，`.bss` 从 2882 字节降到 0 —— 静态格式化缓冲区随代码一起消失。
+
+注意：
+
+- 写 `CLOG_LEVEL_INFO`，不要写 `INFO`。`#if` 中未定义的标识符会被当作 `0`，结果是所有等级都保留，编译器不报错。加 `-Wundef` 才能发现。
+- 与 `clog_set_level(...)` 相互独立，后者仍在运行时过滤。两者同时生效时取更严的那个。
+- 被滤掉的调用，其实参不求值，`DEBUG("v=%d", compute())` 里的副作用会一起消失。
+- `LOG(level, ...)` 的等级是运行时值，永远不参与编译期过滤。
+- 建议从构建系统传入该宏，保证每个编译单元取值一致。
 
 ## API Reference
 
